@@ -86,6 +86,7 @@ void bgp_writes_off(struct peer *peer)
 
 void bgp_reads_on(struct peer *peer)
 {
+	zlog_debug("bgp_reads_on start!");
 	struct frr_pthread *fpt = bgp_pth_io;
 	assert(fpt->running);
 
@@ -174,6 +175,7 @@ static int bgp_process_writes(struct thread *thread)
  */
 static int bgp_process_reads(struct thread *thread)
 {
+	zlog_debug("test kanaya from %s", __func__);
 	/* clang-format off */
 	static struct peer *peer;	// peer to read from
 	uint16_t status;		// bgp_read status code

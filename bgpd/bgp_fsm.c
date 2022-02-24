@@ -131,6 +131,7 @@ static void peer_xfer_stats(struct peer *peer_dst, struct peer *peer_src)
 
 static struct peer *peer_xfer_conn(struct peer *from_peer)
 {
+	zlog_debug("%s start!", __func__);
 	struct peer *peer;
 	afi_t afi;
 	safi_t safi;
@@ -1737,6 +1738,8 @@ static int bgp_connect_success(struct peer *peer)
 			zlog_debug("%s passive open", peer->host);
 	}
 
+	zlog_debug("%s start! %d", __func__, peer->afc[AFI_LINK_STATE][SAFI_LINK_STATE]);
+
 	/* Send an open message */
 	bgp_open_send(peer);
 
@@ -2085,6 +2088,7 @@ static int bgp_update_gr_info(struct peer *peer, afi_t afi, safi_t safi)
  */
 static int bgp_establish(struct peer *peer)
 {
+	zlog_debug("bgp_establish start!");
 	afi_t afi;
 	safi_t safi;
 	int nsf_af_count = 0;
@@ -2094,6 +2098,8 @@ static int bgp_establish(struct peer *peer)
 
 	other = peer->doppelganger;
 	peer = peer_xfer_conn(peer);
+	zlog_debug("peer_xfer_conn finished!");
+	zlog_debug("peer_xfer_conn finished! %d", peer->afc[AFI_LINK_STATE][SAFI_LINK_STATE]);
 	if (!peer) {
 		flog_err(EC_BGP_CONNECT, "%%Neighbor failed in xfer_conn");
 		return -1;

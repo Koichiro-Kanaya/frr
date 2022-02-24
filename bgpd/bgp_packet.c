@@ -1145,6 +1145,7 @@ static int bgp_collision_detect(struct peer *new, struct in_addr remote_id)
  */
 static int bgp_open_receive(struct peer *peer, bgp_size_t size)
 {
+	zlog_debug("test kanaya from %s", __func__);
 	int ret;
 	uint8_t version;
 	uint16_t optlen;
@@ -1469,6 +1470,8 @@ static int bgp_open_receive(struct peer *peer, bgp_size_t size)
 			peer->afc[AFI_L2VPN][SAFI_EVPN];
 		peer->afc_nego[AFI_IP6][SAFI_FLOWSPEC] =
 			peer->afc[AFI_IP6][SAFI_FLOWSPEC];
+		peer->afc_nego[AFI_LINK_STATE][SAFI_LINK_STATE] =
+			peer->afc[AFI_LINK_STATE][SAFI_LINK_STATE];
 	}
 
 	/* Verify valid local address present based on negotiated
@@ -1499,6 +1502,8 @@ static int bgp_open_receive(struct peer *peer, bgp_size_t size)
 	}
 	peer->rtt = sockopt_tcp_rtt(peer->fd);
 
+	zlog_debug("successfully finished bgp_open_receive.");
+	zlog_debug("peer->afc[AFI_LINK_STATE][SAFI_LINK_STATE] = %d", (int)peer->afc[AFI_LINK_STATE][SAFI_LINK_STATE]);
 	return Receive_OPEN_message;
 }
 
@@ -2575,6 +2580,7 @@ int bgp_capability_receive(struct peer *peer, bgp_size_t size)
  */
 int bgp_process_packet(struct thread *thread)
 {
+	zlog_debug("test kanaya from %s", __func__);
 	/* Yes first of all get peer pointer. */
 	struct peer *peer;	// peer
 	uint32_t rpkt_quanta_old; // how many packets to read
@@ -2612,6 +2618,7 @@ int bgp_process_packet(struct thread *thread)
 		size = stream_getw(peer->curr);
 		type = stream_getc(peer->curr);
 
+		zlog_debug("test kanaya from type %d", type);
 		hook_call(bgp_packet_dump, peer, type, size, peer->curr);
 
 		/* adjust size to exclude the marker + length + type */
@@ -2722,6 +2729,8 @@ int bgp_process_packet(struct thread *thread)
 			break;
 	}
 
+	zlog_debug("on the way of bgp_process_packet.");
+
 	if (fsm_update_result != FSM_PEER_TRANSFERRED
 	    && fsm_update_result != FSM_PEER_STOPPED) {
 		frr_with_mutex(&peer->io_mtx) {
@@ -2732,6 +2741,8 @@ int bgp_process_packet(struct thread *thread)
 					&peer->t_process_packet);
 		}
 	}
+
+	zlog_debug("successfully finished bgp_process_packet.");
 
 	return 0;
 }

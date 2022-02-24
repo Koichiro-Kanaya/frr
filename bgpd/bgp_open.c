@@ -327,19 +327,28 @@ static int bgp_capability_mp(struct peer *peer, struct capability_header *hdr)
 		zlog_debug("%s OPEN has %s capability for afi/safi: %s/%s",
 			   peer->host, lookup_msg(capcode_str, hdr->code, NULL),
 			   iana_afi2str(mpc.afi), iana_safi2str(mpc.safi));
-
+        zlog_debug("received-afi: %d", (int)mpc.afi);
+        zlog_debug("received-safi: %d", (int)mpc.safi);
 	/* Convert AFI, SAFI to internal values, check. */
 	if (bgp_map_afi_safi_iana2int(mpc.afi, mpc.safi, &afi, &safi))
 		return -1;
+	zlog_debug("zebra afi: %d", (int)afi);
+	zlog_debug("zebra safi: %d", (int)safi);
 
 	/* Now safi remapped, and afi/safi are valid array indices */
 	peer->afc_recv[afi][safi] = 1;
+
+	if (afi == AFI_LINK_STATE && safi == SAFI_LINK_STATE) {
+		zlog_debug("dirty from afi == AFI_LINK_STATE && safi == SAFI_LINK_STATE");
+		peer->afc[afi][safi] = 1;
+		peer->afc_nego[afi][safi] = 1;
+		return 0;
+	}
 
 	if (peer->afc[afi][safi])
 		peer->afc_nego[afi][safi] = 1;
 	else
 		return -1;
-
 	return 0;
 }
 
@@ -879,6 +888,7 @@ static int bgp_capability_hostname(struct peer *peer,
 static int bgp_capability_parse(struct peer *peer, size_t length,
 				int *mp_capability, uint8_t **error)
 {
+	zlog_debug("test kanaya from %s", __func__);
 	int ret;
 	struct stream *s = BGP_INPUT(peer);
 	size_t end = stream_get_getp(s) + length;
@@ -1074,6 +1084,8 @@ static int bgp_capability_parse(struct peer *peer, size_t length,
 			peer->v_gr_restart = restart_flag_time;
 		}
 	}
+	int tmp = *mp_capability;
+	zlog_debug("normally finished bgp_capability_parse %d", tmp);
 	return 0;
 }
 
@@ -1175,6 +1187,7 @@ end:
 int bgp_open_option_parse(struct peer *peer, uint16_t length,
 			  int *mp_capability)
 {
+	zlog_debug("test kanaya from %s", __func__);
 	int ret = 0;
 	uint8_t *error;
 	uint8_t error_data[BGP_STANDARD_MESSAGE_MAX_PACKET_SIZE];
@@ -1250,6 +1263,7 @@ int bgp_open_option_parse(struct peer *peer, uint16_t length,
 		if (ret < 0)
 			return -1;
 	}
+	zlog_debug("bgp_open_option_parse 1");
 
 	/* All OPEN option is parsed.  Check capability when strict compare
 	   flag is enabled.*/
@@ -1271,6 +1285,7 @@ int bgp_open_option_parse(struct peer *peer, uint16_t length,
 			return -1;
 		}
 	}
+	zlog_debug("bgp_open_option_parse 2");
 
 	/* Extended Message Support */
 	peer->max_packet_size =
@@ -1295,7 +1310,8 @@ int bgp_open_option_parse(struct peer *peer, uint16_t length,
 		    && !peer->afc_nego[AFI_IP6][SAFI_MPLS_VPN]
 		    && !peer->afc_nego[AFI_IP6][SAFI_ENCAP]
 		    && !peer->afc_nego[AFI_IP6][SAFI_FLOWSPEC]
-		    && !peer->afc_nego[AFI_L2VPN][SAFI_EVPN]) {
+		    && !peer->afc_nego[AFI_L2VPN][SAFI_EVPN]
+			&& !peer->afc_nego[AFI_LINK_STATE][SAFI_LINK_STATE]) {
 			flog_err(EC_BGP_PKT_OPEN,
 				 "%s [Error] Configured AFI/SAFIs do not overlap with received MP capabilities",
 				 peer->host);
@@ -1311,6 +1327,7 @@ int bgp_open_option_parse(struct peer *peer, uint16_t length,
 			return -1;
 		}
 	}
+	zlog_debug("bgp_open_option_parse finished %d", peer->afc_nego[AFI_LINK_STATE][SAFI_LINK_STATE]);
 	return 0;
 }
 
@@ -1553,8 +1570,13 @@ uint16_t bgp_open_capability(struct stream *s, struct peer *peer,
 		return 0;
 
 	/* MP capability for configured AFI, SAFI */
+
+	peer->afc[AFI_LINK_STATE][SAFI_LINK_STATE] = 1; // dirty hack
 	FOREACH_AFI_SAFI (afi, safi) {
 		if (peer->afc[afi][safi]) {
+			zlog_debug("-------------------");
+			zlog_debug("bgp_open_capability: %d %d %d", (int)afi, (int)safi, (int)peer->afc[afi][safi]);
+			zlog_debug("-------------------");
 			/* Convert AFI, SAFI to values for packet. */
 			bgp_map_afi_safi_int2iana(afi, safi, &pkt_afi,
 						  &pkt_safi);
